@@ -4,19 +4,18 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import pkg from '../package.json' with { type: 'json' }
 
-const constantsString = await fs.readFile(
-  path.resolve(import.meta.dirname, '../src/js/constants.js'),
-  'utf-8',
-)
+const constantsFile = path.resolve(import.meta.dirname, '../src/js/constants.js')
 
-constantsString.replace(
+let constantsString = await fs.readFile(constantsFile, 'utf-8')
+
+constantsString = constantsString.replace(
   /export const VERSION = ['"](.*?)['"];?/g,
   `export const VERSION = '${pkg.version}'`,
 )
 
-constantsString.replace(
+constantsString = constantsString.replace(
   /export const UPDATED_AT = ['"](.*?)['"];?/g,
   `export const UPDATED_AT = '${new Date().toISOString()}'`,
 )
 
-await fs.writeFile(path.resolve(import.meta.dirname, '../src/js/constants.js'), constantsString)
+await fs.writeFile(constantsFile, constantsString)
