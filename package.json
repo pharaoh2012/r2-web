@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "typecheck": "tsc --noEmit --project jsconfig.json",
-    "release": "bumpp && node ./scripts/release.mts && changelogithub --dry"
+    "release": "bumpp --no-push && node ./scripts/release.mts && git add . && git commit -m \"chore: release version ${npm_package_version}\" && changelogithub --dry"
   },
   "dependencies": {
     "@jsquash/avif": "^2.1.1",
