@@ -64,6 +64,7 @@ class FilePreview {
         this.#currentImageUrl = url
         this.#currentCopyType = 'image'
         body.innerHTML = `<img src="${url}" alt="${getFileName(key)}">`
+        copyBtn.dataset.tooltip = t('copyUrl')
         copyBtn.hidden = false
       } else if (VIDEO_RE.test(key)) {
         const url = this.#r2.getPublicUrl(key) ?? (await this.#r2.getPresignedUrl(key))
@@ -80,6 +81,7 @@ class FilePreview {
         const pre = document.createElement('pre')
         pre.textContent = text
         body.appendChild(pre)
+        copyBtn.dataset.tooltip = t('copyText')
         copyBtn.hidden = false
       } else {
         body.innerHTML = `<p style="color:var(--text-tertiary)">${t('previewNotAvailable')}</p>`
@@ -123,18 +125,11 @@ class FilePreview {
     }
 
     if (this.#currentCopyType === 'image' && this.#currentImageUrl) {
-      if (!navigator.clipboard || !window.ClipboardItem) {
-        this.#ui.toast(t('copyImageNotSupported'), 'error')
-        return
-      }
       try {
-        const res = await fetch(this.#currentImageUrl)
-        const blob = await res.blob()
-        const item = new ClipboardItem({ [blob.type || 'image/png']: blob })
-        await navigator.clipboard.write([item])
-        this.#ui.toast(t('copyImageSuccess'), 'success')
+        await navigator.clipboard.writeText(this.#currentImageUrl)
+        this.#ui.toast(t('linkCopied'), 'success')
       } catch {
-        this.#ui.toast(t('copyImageFailed'), 'error')
+        await this.#ui.prompt(t('copyTextTitle'), t('copyUrl'), this.#currentImageUrl)
       }
     }
   }
