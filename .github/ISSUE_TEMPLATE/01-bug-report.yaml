@@ -82,9 +82,9 @@ body:
           required: true
 
   - type: textarea
-    id: additional
+    id: additional-info
     attributes:
       label: "其他信息（可选）"
-      description: "任何其他有助于解决问题的信息"
+      description: "任何其他您认为有用的信息，如相关链接、截图说明等"
     validations:
       required: false
