@@ -94,12 +94,10 @@ class FilePreview {
   async downloadCurrent() {
     if (!this.#currentKey) return
     try {
-      const url =
-        this.#r2.getPublicUrl(this.#currentKey) ??
-        (await this.#r2.getPresignedUrl(this.#currentKey))
+      const filename = getFileName(this.#currentKey)
+      const url = await this.#r2.getDownloadUrl(this.#currentKey, filename)
       const a = document.createElement('a')
       a.href = url
-      a.download = getFileName(this.#currentKey)
       document.body.appendChild(a)
       a.click()
       a.remove()

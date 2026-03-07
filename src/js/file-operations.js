@@ -180,10 +180,9 @@ class FileOperations {
   /** @param {string} key */
   async download(key) {
     try {
-      const url = this.#r2.getPublicUrl(key) ?? (await this.#r2.getPresignedUrl(key))
+      const url = await this.#r2.getDownloadUrl(key, getFileName(key))
       const a = document.createElement('a')
       a.href = url
-      a.download = getFileName(key)
       document.body.appendChild(a)
       a.click()
       a.remove()

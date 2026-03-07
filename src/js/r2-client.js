@@ -98,6 +98,18 @@ class R2Client {
     return signed.url
   }
 
+  /** @param {string} key @param {string} filename */
+  async getDownloadUrl(key, filename) {
+    const base = `${/** @type {ConfigManager} */ (this.#config).getBucketUrl()}/${encodeS3Key(key)}`
+    const url = new URL(base)
+    url.searchParams.set('response-content-disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
+    const signed = await /** @type {AwsClient} */ (this.#client).sign(url.toString(), {
+      method: 'GET',
+      aws: { signQuery: true },
+    })
+    return signed.url
+  }
+
   /** @param {string} key */
   getPublicUrl(key) {
     const cfg = /** @type {ConfigManager} */ (this.#config).get()
