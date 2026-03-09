@@ -320,7 +320,6 @@ class UploadManager {
     const body = $('#upload-panel-body')
     const title = $('#upload-panel-title')
 
-    panel.hidden = false
     body.innerHTML = ''
 
     const cfg = this.#config.get()
@@ -336,7 +335,6 @@ class UploadManager {
     /** @type {null | 'overwrite-all' | 'skip-all'} */
     let conflictDecision = null
     let skippedCount = 0
-    title.textContent = `${t('uploadProgress')} 0/${files.length}`
 
     for (let i = 0; i < files.length; i++) {
       let file = files[i]
@@ -438,6 +436,7 @@ class UploadManager {
       return
     }
 
+    panel.hidden = false
     title.textContent = `${t('uploadProgress')} 0/${uploads.length}`
 
     let completed = 0
