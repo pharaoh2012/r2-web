@@ -6,7 +6,7 @@
 
 **R2 Web** — 纯客户端 Cloudflare R2 存储桶文件管理器，零构建、零框架、零后端。
 
-**核心特性** 文件上传、目录浏览、文件预览、文件操作、图片压缩、PWA、多语言（zh/en/ja）、浅色/深色主题。
+**核心特性** 文件上传、目录浏览、文件预览、文件操作、图片压缩、PWA、多语言（zh/en/ja）、浅色/深色主题、多选批量操作。
 
 **快速启动**
 
@@ -30,6 +30,7 @@ python3 -m http.server 5500 --directory src
 | 修改 R2 API 操作   | `src/js/r2-client.js`                       |
 | 修改文件浏览逻辑   | `src/js/file-explorer.js`                   |
 | 修改上传管理逻辑   | `src/js/upload-manager.js`                  |
+| 多选批量操作逻辑   | `src/js/file-explorer.js` — `toggleSelect` / `selectAll` / `clearSelection` |
 
 ### 工具函数列表
 

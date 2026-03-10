@@ -1823,4 +1823,163 @@
       opacity: 1;
     }
   }
+
+  /* File card checkbox */
+  .file-card-checkbox-wrap {
+    position: absolute;
+    top: var(--sp-1);
+    left: var(--sp-1);
+    z-index: 1;
+    opacity: 0;
+    line-height: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+
+    & input[type='checkbox'] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid color-mix(in oklch, var(--text-secondary) 50%, transparent);
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color var(--duration-fast) var(--ease-out);
+
+      &:checked {
+        background: var(--accent)
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'%3E%3Cpolyline points='1 4 4 7 9 1' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+          no-repeat center / 10px 8px;
+        border-color: var(--accent);
+      }
+    }
+  }
+
+  .file-card.selected .file-card-checkbox-wrap {
+    opacity: 1;
+  }
+
+  /* 批量模式下始终显示 checkbox */
+  #app.batch-mode .file-card-checkbox-wrap {
+    opacity: 1;
+  }
+
+  .file-card.selected {
+    background: color-mix(in oklch, var(--accent) 10%, var(--bg-primary));
+    outline: 1.5px solid color-mix(in oklch, var(--accent) 50%, transparent);
+    outline-offset: -1.5px;
+  }
+
+  [data-view='list'] .file-card-checkbox-wrap {
+    position: static;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      width var(--duration-fast) var(--ease-out),
+      opacity var(--duration-fast) var(--ease-out);
+  }
+
+  #app.batch-mode [data-view='list'] .file-card-checkbox-wrap {
+    width: 18px;
+  }
+
+  @media (width <= 640px) {
+    .file-card-checkbox-wrap {
+      position: static;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      width: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition:
+        width var(--duration-fast) var(--ease-out),
+        opacity var(--duration-fast) var(--ease-out);
+    }
+
+    #app.batch-mode .file-card-checkbox-wrap {
+      width: 18px;
+    }
+  }
+
+  #batch-toggle-btn {
+    & #batch-toggle-icon-exit {
+      display: none;
+    }
+
+    &[aria-pressed='true'] {
+      & #batch-toggle-icon-enter {
+        display: none;
+      }
+
+      & #batch-toggle-icon-exit {
+        display: inline;
+      }
+    }
+  }
+
+  /* Batch action bar */
+  .batch-action-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    white-space: nowrap;
+    transition: opacity var(--duration-normal) var(--ease-out);
+
+    @starting-style {
+      opacity: 0;
+    }
+
+    @media (width <= 640px) {
+      position: fixed;
+      bottom: var(--sp-3);
+      left: var(--sp-3);
+      right: var(--sp-3);
+      padding: var(--sp-2) var(--sp-3);
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      z-index: var(--z-context-menu);
+      justify-content: space-between;
+      transition:
+        opacity var(--duration-normal) var(--ease-out),
+        transform var(--duration-normal) var(--ease-out);
+
+      @starting-style {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+    }
+
+    & #batch-cancel-btn {
+      display: none;
+
+      @media (width <= 640px) {
+        display: inline-flex;
+      }
+    }
+
+    &.hiding {
+      opacity: 0;
+      pointer-events: none;
+
+      @media (width <= 640px) {
+        transform: translateY(8px);
+      }
+    }
+  }
+
+  .batch-count {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .batch-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+  }
 }

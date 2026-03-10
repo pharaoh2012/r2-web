@@ -201,6 +201,164 @@ class FileOperations {
     }
   }
 
+  /**
+   * @param {import('./file-explorer.js').SelectionItem[]} items
+   *
+   * @returns {Promise<boolean>} 用户取消返回 false，实际执行返回 true
+   */
+  async deleteMany(items) {
+    const count = items.length
+    const ok = await this.#ui.confirm(t('batchDeleteTitle'), t('batchDeleteConfirmMsg', { count }))
+    if (!ok) return false
+
+    this.#ui.toast(t('batchDeleting', { count }), 'info')
+    let success = 0
+    let fail = 0
+
+    for (const item of items) {
+      try {
+        if (item.isFolder) {
+          await this.#recursiveOperation(item.key, async (k) => this.#r2.deleteObject(k), false)
+          try {
+            await this.#r2.deleteObject(item.key)
+          } catch {}
+        } else {
+          await this.#r2.deleteObject(item.key)
+        }
+        success++
+      } catch {
+        fail++
+      }
+    }
+
+    this.#ui.toast(
+      fail === 0 ? t('batchDeleteSuccess', { count: success }) : t('batchDeletePartial', { success, fail }),
+      fail === 0 ? 'success' : 'error',
+    )
+    this.#explorer.invalidateCache(this.#explorer.currentPrefix)
+    await this.#explorer.refresh()
+    return true
+  }
+
+  /**
+   * @param {import('./file-explorer.js').SelectionItem[]} items
+   * @returns {Promise<boolean>} 用户取消返回 false，实际执行返回 true
+   */
+  async moveMany(items) {
+    const count = items.length
+    const currentPrefix = this.#explorer.currentPrefix
+
+    const destFolder = await this.#ui.prompt(t('batchMoveTitle'), t('batchMoveLabel'), currentPrefix, {
+      validate: (v) => {
+        const folder = v === '' ? '' : v.endsWith('/') ? v : v + '/'
+        const allSame = items.every((item) => {
+          const name = extractFileName(item.key)
+          return folder + name + (item.isFolder ? '/' : '') === item.key
+        })
+        return allSame ? t('batchMoveSamePath') : null
+      },
+    })
+    if (destFolder === null) return false
+
+    const folder = destFolder === '' ? '' : destFolder.endsWith('/') ? destFolder : destFolder + '/'
+    this.#ui.toast(t('batchMoving', { count }), 'info')
+    let success = 0
+    let fail = 0
+
+    for (const item of items) {
+      const name = extractFileName(item.key)
+      const dest = folder + name + (item.isFolder ? '/' : '')
+      if (dest === item.key) continue
+
+      try {
+        if (item.isFolder) {
+          await this.#recursiveOperation(
+            item.key,
+            async (/** @type {string} */ srcKey) => {
+              await this.#r2.copyObject(srcKey, dest + srcKey.substring(item.key.length))
+            },
+            true,
+          )
+        } else {
+          await this.#r2.copyObject(item.key, dest)
+          await this.#r2.deleteObject(item.key)
+        }
+        success++
+      } catch {
+        fail++
+      }
+    }
+
+    this.#ui.toast(
+      fail === 0
+        ? t('batchMoveSuccess', { count: success, dest: folder || '/' })
+        : t('batchMovePartial', { success, fail }),
+      fail === 0 ? 'success' : 'error',
+    )
+    this.#explorer.invalidateCache()
+    await this.#explorer.refresh()
+    return true
+  }
+
+  /**
+   * @param {import('./file-explorer.js').SelectionItem[]} items
+   * @returns {Promise<boolean>} 用户取消返回 false，实际执行返回 true
+   */
+  async copyMany(items) {
+    const count = items.length
+    const currentPrefix = this.#explorer.currentPrefix
+
+    const destFolder = await this.#ui.prompt(t('batchCopyTitle'), t('batchCopyLabel'), currentPrefix, {
+      validate: (v) => {
+        const folder = v === '' ? '' : v.endsWith('/') ? v : v + '/'
+        const allSame = items.every((item) => {
+          const name = extractFileName(item.key)
+          return folder + name + (item.isFolder ? '/' : '') === item.key
+        })
+        return allSame ? t('batchCopySamePath') : null
+      },
+    })
+    if (destFolder === null) return false
+
+    const folder = destFolder === '' ? '' : destFolder.endsWith('/') ? destFolder : destFolder + '/'
+    this.#ui.toast(t('batchCopying', { count }), 'info')
+    let success = 0
+    let fail = 0
+
+    for (const item of items) {
+      const name = extractFileName(item.key)
+      const dest = folder + name + (item.isFolder ? '/' : '')
+      if (dest === item.key) continue
+
+      try {
+        if (item.isFolder) {
+          await this.#recursiveOperation(
+            item.key,
+            async (/** @type {string} */ srcKey) => {
+              await this.#r2.copyObject(srcKey, dest + srcKey.substring(item.key.length))
+            },
+            false,
+          )
+        } else {
+          await this.#r2.copyObject(item.key, dest)
+        }
+        success++
+      } catch {
+        fail++
+      }
+    }
+
+    this.#ui.toast(
+      fail === 0
+        ? t('batchCopySuccess', { count: success, dest: folder || '/' })
+        : t('batchCopyPartial', { success, fail }),
+      fail === 0 ? 'success' : 'error',
+    )
+    this.#explorer.invalidateCache()
+    await this.#explorer.refresh()
+    return true
+  }
+
   /** @param {string} key */
   async download(key) {
     try {

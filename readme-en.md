@@ -79,11 +79,11 @@ Other services can simply deploy the `src` directory. After deployment, remember
 
 | Category            | Details                                                                                                                                  |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **File Management** | Directory browsing, paginated loading, lazy thumbnail loading<br>Sort by name / date / size<br>Rename, move, copy, delete (recursive)    |
-| **File Upload**     | Drag / paste / picker upload<br>Filename templates (hash, date, UUID placeholders)<br>Auto image compression before upload (WebAssembly) |
-| **File Preview**    | Image preview (common formats)<br>Inline video / audio player<br>Text file preview with syntax highlighting                              |
+| **File Management** | Directory browsing, paginated loading, lazy thumbnail loading; Sort by name / date / size; Rename, move, copy, delete (recursive); Batch operations with multi-select |
+| **File Upload**     | Drag / paste / picker upload; Filename templates (hash, date, UUID placeholders); Auto image compression before upload (WebAssembly) |
+| **File Preview**    | Image preview (common formats); Inline video / audio player; Text file preview with syntax highlighting                              |
 | **Link Copy**       | Direct URL, Markdown, HTML, pre-signed URL                                                                                               |
-| **Personalization** | Simplified / Traditional Chinese, English, Japanese<br>Dark mode (follows system)<br>Config share link / QR code                         |
+| **Personalization** | Simplified / Traditional Chinese, English, Japanese; Dark mode (follows system); Config share link / QR code                         |
 | **PWA**             | Install to desktop, native-like experience                                                                                               |
 
 ## Quick Start

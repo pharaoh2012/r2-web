@@ -37,6 +37,9 @@ class App {
   /** @type {FileOperations | null} */
   #ops = null
   #appEventsBound = false
+  #batchMode = false
+  /** @type {((e: TransitionEvent) => void) | null} */
+  #onBarTransitionEnd = null
 
   constructor() {
     this.#config = new ConfigManager()
@@ -277,6 +280,12 @@ class App {
     $('#file-qr-desc').textContent = t('fileQrDesc')
     $('#file-qr-copy-text').textContent = t('copyLink')
 
+    this.#updateSelectAllBtn()
+    $('#batch-move-text').textContent = t('move')
+    $('#batch-copy-text').textContent = t('copy')
+    $('#batch-delete-text').textContent = t('delete')
+    $('#batch-toggle-text').textContent = t(this.#batchMode ? 'exitBatchMode' : 'batchMode')
+
     this.#ui.initTooltip()
   }
 
@@ -291,6 +300,11 @@ class App {
       this.#hideHero()
       $('#app').hidden = false
       this.#restoreViewPrefs()
+      this.#explorer.setOnSelectionChange((count) => {
+        if (!this.#batchMode) return
+        $('#batch-count').textContent = t('batchSelected', { count })
+        this.#updateSelectAllBtn()
+      })
       if (!this.#appEventsBound) {
         this.#upload.initDragDrop()
         this.#bindAppEvents()
@@ -316,6 +330,56 @@ class App {
     this.#setDensity(density)
     this.#setSortBy(sortBy)
     this.#setSortOrder(sortOrder)
+  }
+
+  #enterBatchMode() {
+    this.#batchMode = true
+    const app = /** @type {HTMLElement} */ ($('#app'))
+    app.classList.add('batch-mode')
+    const btn = /** @type {HTMLElement} */ ($('#batch-toggle-btn'))
+    btn.setAttribute('aria-pressed', 'true')
+    $('#batch-toggle-text').textContent = t('exitBatchMode')
+    const bar = /** @type {HTMLElement} */ ($('#batch-action-bar'))
+    if (this.#onBarTransitionEnd) {
+      bar.removeEventListener('transitionend', this.#onBarTransitionEnd)
+      this.#onBarTransitionEnd = null
+    }
+    bar.classList.remove('hiding')
+    bar.hidden = false
+    $('#batch-count').textContent = t('batchSelected', { count: 0 })
+    this.#updateSelectAllBtn()
+  }
+
+  #exitBatchMode() {
+    this.#batchMode = false
+    const explorer = /** @type {FileExplorer} */ (this.#explorer)
+    explorer.clearSelection()
+    const app = /** @type {HTMLElement} */ ($('#app'))
+    app.classList.remove('batch-mode')
+    const btn = /** @type {HTMLElement} */ ($('#batch-toggle-btn'))
+    btn.setAttribute('aria-pressed', 'false')
+    $('#batch-toggle-text').textContent = t('batchMode')
+    const bar = /** @type {HTMLElement} */ ($('#batch-action-bar'))
+    bar.classList.add('hiding')
+    this.#onBarTransitionEnd = (/** @type {TransitionEvent} */ e) => {
+      if (e.propertyName !== 'opacity') return
+      bar.removeEventListener('transitionend', this.#onBarTransitionEnd)
+      this.#onBarTransitionEnd = null
+      bar.hidden = true
+      bar.classList.remove('hiding')
+    }
+    bar.addEventListener('transitionend', this.#onBarTransitionEnd)
+  }
+
+  #updateSelectAllBtn() {
+    if (!this.#explorer) {
+      $('#batch-select-all-text').textContent = t('batchSelectAll')
+      return
+    }
+    const total = document.querySelectorAll('#file-grid .file-card').length
+    const selected = this.#explorer.selectionCount
+    const allSelected = total > 0 && selected === total
+    $('#batch-select-all-text').textContent = allSelected ? t('batchDeselectAll') : t('batchSelectAll')
   }
 
   /** @param {string} view */
@@ -571,8 +635,25 @@ class App {
         return
       }
 
+      const checkboxWrap = /** @type {HTMLElement | null} */ (target.closest('.file-card-checkbox-wrap'))
+      if (checkboxWrap) {
+        e.stopPropagation()
+        const card = /** @type {HTMLElement | null} */ (checkboxWrap.closest('.file-card'))
+        if (card) /** @type {FileExplorer} */ (this.#explorer).toggleSelect(card.dataset.key ?? '', card.dataset.isFolder === 'true')
+        return
+      }
+
       const card = /** @type {HTMLElement | null} */ (target.closest('.file-card'))
       if (card) {
+        if (this.#batchMode) {
+          /** @type {FileExplorer} */ (this.#explorer).toggleSelect(card.dataset.key ?? '', card.dataset.isFolder === 'true')
+          return
+        }
+        if (e.ctrlKey || e.metaKey) {
+          /** @type {FileExplorer} */ (this.#explorer).toggleSelect(card.dataset.key ?? '', card.dataset.isFolder === 'true')
+          return
+        }
+        /** @type {FileExplorer} */ (this.#explorer).clearSelection()
         if (card.dataset.isFolder === 'true') {
           /** @type {FileExplorer} */ this.#explorer.navigate(card.dataset.key ?? '')
         } else {
@@ -716,6 +797,49 @@ class App {
 
     $('#view-grid-btn').addEventListener('click', () => this.#setView('grid'))
     $('#view-list-btn').addEventListener('click', () => this.#setView('list'))
+
+    $('#batch-delete-btn').addEventListener('click', async () => {
+      const items = /** @type {FileExplorer} */ (this.#explorer).getSelection()
+      if (!items.length) return
+      const executed = await /** @type {FileOperations} */ (this.#ops).deleteMany(items)
+      if (executed) this.#exitBatchMode()
+    })
+
+    $('#batch-move-btn').addEventListener('click', async () => {
+      const items = /** @type {FileExplorer} */ (this.#explorer).getSelection()
+      if (!items.length) return
+      const executed = await /** @type {FileOperations} */ (this.#ops).moveMany(items)
+      if (executed) this.#exitBatchMode()
+    })
+
+    $('#batch-copy-btn').addEventListener('click', async () => {
+      const items = /** @type {FileExplorer} */ (this.#explorer).getSelection()
+      if (!items.length) return
+      const executed = await /** @type {FileOperations} */ (this.#ops).copyMany(items)
+      if (executed) this.#exitBatchMode()
+    })
+
+    $('#batch-cancel-btn').addEventListener('click', () => {
+      this.#exitBatchMode()
+    })
+
+    $('#batch-select-all-btn').addEventListener('click', () => {
+      const total = document.querySelectorAll('#file-grid .file-card').length
+      const selected = /** @type {FileExplorer} */ (this.#explorer).selectionCount
+      if (total > 0 && selected === total) {
+        /** @type {FileExplorer} */ (this.#explorer).clearSelection()
+      } else {
+        /** @type {FileExplorer} */ (this.#explorer).selectAll()
+      }
+    })
+
+    $('#batch-toggle-btn').addEventListener('click', () => {
+      if (this.#batchMode) {
+        this.#exitBatchMode()
+      } else {
+        this.#enterBatchMode()
+      }
+    })
   }
 }
 

@@ -7,6 +7,7 @@ import { $, formatDate, getErrorMessage, getFileIconSvg, extractFileName, getFil
 
 /** @typedef {{ key: string; isFolder: boolean; size?: number; lastModified?: string }} FileItem */
 /** @typedef {{ data: { folders: FileItem[], files: FileItem[], isTruncated: boolean, nextToken: string }, ts: number }} CacheEntry */
+/** @typedef {{ key: string; isFolder: boolean }} SelectionItem */
 
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
@@ -25,6 +26,10 @@ class FileExplorer {
   #cache = new Map()
   /** @type {FileItem[]} */
   #loadedItems = []
+  /** @type {Map<string, SelectionItem>} */
+  #selection = new Map()
+  /** @type {((count: number) => void) | null} */
+  #onSelectionChange = null
 
   /** @param {R2Client} r2 @param {UIManager} ui */
   constructor(r2, ui) {
@@ -58,6 +63,64 @@ class FileExplorer {
     return this.#sortOrder
   }
 
+  /** @param {(count: number) => void} cb */
+  setOnSelectionChange(cb) {
+    this.#onSelectionChange = cb
+  }
+
+  /** @returns {SelectionItem[]} */
+  getSelection() {
+    return [...this.#selection.values()]
+  }
+
+  get selectionCount() {
+    return this.#selection.size
+  }
+
+  clearSelection() {
+    if (this.#selection.size === 0) return
+    this.#selection.clear()
+    document.querySelectorAll('#file-grid .file-card.selected').forEach((el) => {
+      el.classList.remove('selected')
+      const cb = /** @type {HTMLInputElement|null} */ (el.querySelector('.file-card-checkbox-wrap input'))
+      if (cb) cb.checked = false
+    })
+    this.#onSelectionChange?.(0)
+  }
+
+  /**
+   * @param {string} key
+   * @param {boolean} isFolder
+   */
+  toggleSelect(key, isFolder) {
+    if (this.#selection.has(key)) {
+      this.#selection.delete(key)
+    } else {
+      this.#selection.set(key, { key, isFolder })
+    }
+    const card = /** @type {HTMLElement|null} */ (
+      document.querySelector(`#file-grid .file-card[data-key="${CSS.escape(key)}"]`)
+    )
+    const selected = this.#selection.has(key)
+    card?.classList.toggle('selected', selected)
+    const cb = /** @type {HTMLInputElement|null} */ (card?.querySelector('.file-card-checkbox-wrap input'))
+    if (cb) cb.checked = selected
+    this.#onSelectionChange?.(this.#selection.size)
+  }
+
+  selectAll() {
+    const cards = /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('#file-grid .file-card'))
+    cards.forEach((card) => {
+      const key = card.dataset.key ?? ''
+      const isFolder = card.dataset.isFolder === 'true'
+      this.#selection.set(key, { key, isFolder })
+      card.classList.add('selected')
+      const cb = /** @type {HTMLInputElement|null} */ (card.querySelector('.file-card-checkbox-wrap input'))
+      if (cb) cb.checked = true
+    })
+    this.#onSelectionChange?.(this.#selection.size)
+  }
+
   /** @param {string} sortBy */
   setSortBy(sortBy) {
     this.#sortBy = sortBy
@@ -74,10 +137,25 @@ class FileExplorer {
     if (this.#loadedItems.length === 0) return
     $('#file-grid').innerHTML = ''
     this.#renderItems(this.#sortItems(this.#loadedItems))
+    this.#restoreSelectionUI()
+  }
+
+  #restoreSelectionUI() {
+    if (this.#selection.size === 0) return
+    this.#selection.forEach((_, key) => {
+      const card = /** @type {HTMLElement|null} */ (
+        document.querySelector(`#file-grid .file-card[data-key="${CSS.escape(key)}"]`)
+      )
+      if (!card) return
+      card.classList.add('selected')
+      const cb = /** @type {HTMLInputElement|null} */ (card.querySelector('.file-card-checkbox-wrap input'))
+      if (cb) cb.checked = true
+    })
   }
 
   /** @param {string} prefix */
   async navigate(prefix) {
+    this.clearSelection()
     this.#prefix = prefix
     this.#continuationToken = ''
     this.#loadedItems = []
@@ -236,7 +314,11 @@ class FileExplorer {
       </div>`
     }
 
+    const checkboxLabel = t('selectFile')
     card.innerHTML = `
+      <span class="file-card-checkbox-wrap" title="${checkboxLabel}">
+        <input type="checkbox" aria-label="${checkboxLabel}">
+      </span>
       ${iconHtml}
       <span class="file-card-name"></span>
       ${
@@ -309,6 +391,7 @@ class FileExplorer {
   }
 
   async refresh() {
+    this.clearSelection()
     this.invalidateCache(this.#prefix)
     this.#continuationToken = ''
     this.#loadedItems = []
