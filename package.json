@@ -10,7 +10,8 @@
     "dev": "npx serve ./src -p 5500",
     "format": "prettier --write ./src/**/*.{ts,tsx,js,jsx,json,css,md,html} --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit --project jsconfig.json",
-    "release": "bumpp"
+    "release": "bumpp",
+    "publish": "surge --project src --domain r2-web.surge.sh"
   },
   "prettier": {
     "semi": false,
